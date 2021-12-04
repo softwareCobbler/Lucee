@@ -110,8 +110,8 @@ public final class TryCatchFinally extends StatementBase implements Opcodes, Has
 		private VariableRef name;
 		private Position line;
 
-		public Catch(ExprString type, VariableRef name, Body body, Position line) {
-			this.type = type;
+		public Catch(ArrayList<ExprString> typenames, VariableRef name, Body body, Position line) {
+			this.type = typenames.get(0);
 			this.name = name;
 			this.body = body;
 			this.line = line;
@@ -308,27 +308,33 @@ public final class TryCatchFinally extends StatementBase implements Opcodes, Has
 	 * @param body
 	 * @param line
 	 */
-	public void addCatch(ExprString type, VariableRef name, Body body, Position line) {
+	public void addCatch(ArrayList<ExprString> typenames, VariableRef name, Body body, Position line) {
 		body.setParent(this);
-		catches.add(new Catch(type, name, body, line));
+		catches.add(new Catch(typenames, name, body, line));
 	}
 
 	/**
+	 * fixme -- if typenames.size() == 0, that's similar to older non-multicatch code where type == null, and that gets passed into the Catch constructor as is
 	 * @param type
 	 * @param name
 	 * @param b
 	 * @param line
 	 * @throws TransformerException
 	 */
-	public void addCatch(Expression type, Expression name, Body b, Position line) throws TransformerException {
+	public void addCatch(ArrayList<Expression> typenames, Expression name, Body b, Position line) throws TransformerException {
 		// MUSTMUST
 		// type
-		if (type == null || type instanceof ExprString) {
+
+		final ArrayList<ExprString> typenamesAsStrings = new ArrayList<>();
+		for (Expression typename : typenames) {
+			if (typename == null || typename instanceof ExprString) {
+				typenamesAsStrings.add((ExprString)typename);
+			}
+			else if (typename instanceof Variable) {
+				typenamesAsStrings.add(VariableString.toExprString(typename));
+			}
+			else throw new TransformerException("type from catch statement is invalid", typename.getStart());
 		}
-		else if (type instanceof Variable) {
-			type = VariableString.toExprString(type);
-		}
-		else throw new TransformerException("type from catch statement is invalid", type.getStart());
 
 		// name
 		if (name instanceof LitString) {
@@ -336,10 +342,17 @@ public final class TryCatchFinally extends StatementBase implements Opcodes, Has
 			v.addMember(getFactory().createDataMember(getFactory().toExprString(name)));
 			name = new VariableRef(v, true);
 		}
-		else if (name instanceof Variable) name = new VariableRef((Variable) name, true);
-		else throw new TransformerException("name from catch statement is invalid", name.getStart());
+		else if (name instanceof Variable) {
+			name = new VariableRef((Variable) name, true);
+		}
+		else if (name instanceof VariableRef) {
+			// no-op, we want a VariableRef
+		}
+		else {
+			throw new TransformerException("name from catch statement is invalid", name.getStart());
+		}
 
-		addCatch((ExprString) type, (VariableRef) name, b, line);
+		addCatch(typenamesAsStrings, (VariableRef) name, b, line);
 	}
 
 	/**

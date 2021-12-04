@@ -19,6 +19,7 @@
 package lucee.transformer.cfml.script;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -2270,8 +2271,8 @@ public abstract class AbstrCFMLScriptTransformer extends AbstrCFMLExprTransforme
 	 * parse a typename in a catch clause
 	 * 
 	 * try { ... }
-	 * catch (<typename> <binding>)
-	 *        ^^^^^^^^^^
+	 * catch (<typename> ("|" <typename>)* <binding>)
+	 *        ^^^^^^^^^^      ^^^^^^^^^^
 	 * typename ->
 	 * 		| <qualified-identifier>        (i.e. `foo.bar.baz`)
 	 * 		| <unqualified-identifier>      (i.e. `foo`)
@@ -2279,12 +2280,10 @@ public abstract class AbstrCFMLScriptTransformer extends AbstrCFMLExprTransforme
 	 * 		| <string-literal>              (i.e. `"foo"`)
 	 */
 	private Expression parseCatchClauseTypename(Data data) throws TemplateException {
-		StringBuffer sbType = new StringBuffer();
-		String id;
-		Expression typename = null;
-
+		final StringBuffer sbType = new StringBuffer();
+		
 		while (true) {
-			id = identifier(data, false);
+			final String id = identifier(data, false);
 			if (id == null) break;
 			sbType.append(id);
 			data.srcCode.removeSpace();
@@ -2292,18 +2291,37 @@ public abstract class AbstrCFMLScriptTransformer extends AbstrCFMLExprTransforme
 			sbType.append('.');
 			data.srcCode.removeSpace();
 		}
-
-		if (sbType.length() == 0) {
-			typename = string(data);
-			if (typename == null) return null;
-		}
-		else {
-			typename = data.factory.createLitString(sbType.toString());
-		}
-
+		
 		comments(data);
 
-		return typename;
+		return sbType.length() == 0
+			? string(data)
+			: data.factory.createLitString(sbType.toString());
+	}
+
+	/**
+	 * parse a list of 1-or-more typenames in a catch clause, seperated by a "|" token
+	 * catch-clause-typename-list ->
+	 * 		<catch-typename> (<whitespace-or-comment>* "|" <whitespace-or-comment>* <catch-typename>)*
+	 * 
+	 * @param data
+	 * @return
+	 * @throws TemplateException
+	 */
+	private ArrayList<Expression> parseCatchClauseTypenameList(Data data) throws TemplateException {
+		final ArrayList<Expression> typenames = new ArrayList<>();
+		final Expression first = parseCatchClauseTypename(data);
+		if (first == null) throw new TemplateException(data.srcCode, "a catch statement must begin with the throwing type (query, application ...).");
+		typenames.add(first);
+		
+		while (data.srcCode.forwardIfCurrent("|")) {
+			comments(data);
+			final Expression typename = parseCatchClauseTypename(data);
+			if (typename == null) throw new TemplateException(data.srcCode, "expected a typename following [|] in a catch statement.");
+			typenames.add(typename);
+		}
+		
+		return typenames;
 	}
 
 	/**
@@ -2336,24 +2354,36 @@ public abstract class AbstrCFMLScriptTransformer extends AbstrCFMLExprTransforme
 			Position line = data.srcCode.getPosition();
 
 			// type
-			Expression type = parseCatchClauseTypename(data);
-			if (type == null) throw new TemplateException(data.srcCode, "a catch statement must begin with the throwing type (query, application ...).");
+			ArrayList<Expression> typenames = parseCatchClauseTypenameList(data);
 
 			// name
 			Expression name = null;
 			if (!data.srcCode.isCurrent(')')) {
+				// the "normal" case:
+				// `catch (x y)` --> type="x", name="y"
 				name = expression(data);
 			}
 			else {
-				data.srcCode.setPos(pos);
-				name = expression(data);
-				type = data.factory.createLitString("any");
+				if (typenames.size() == 1) {
+					// "shorthand" case
+					// `catch (x)` --> type="any", name="x"
+					data.srcCode.setPos(pos);
+					name = expression(data);
+					typenames = new ArrayList<>(Arrays.asList(data.factory.createLitString("any")));
+				}
+				else {
+					// multicatch error case
+					// `catch (x | y)` --> error, catching "x" or "y", but no name given
+					// we must have a name in this position, i.e.
+					// `catch (x | y z)` --> type={"x","y"}, name="z"
+					throw new TemplateException(data.srcCode, "A catch clause that catches more than 1 exception type must declare a name for the caught exception.");
+				}
 			}
 			comments(data);
 
 			Body b = new BodyBase(data.factory);
 			try {
-				tryCatchFinally.addCatch(type, name, b, line);
+				tryCatchFinally.addCatch(typenames, name, b, line);
 			}
 			catch (TransformerException e) {
 				throw new TemplateException(data.srcCode, e.getMessage());
