@@ -2267,6 +2267,46 @@ public abstract class AbstrCFMLScriptTransformer extends AbstrCFMLExprTransforme
 	}
 
 	/**
+	 * parse a typename in a catch clause
+	 * 
+	 * try { ... }
+	 * catch (<typename> <binding>)
+	 *        ^^^^^^^^^^
+	 * typename ->
+	 * 		| <qualified-identifier>        (i.e. `foo.bar.baz`)
+	 * 		| <unqualified-identifier>      (i.e. `foo`)
+	 * 		| <interpolated-string-literal> (i.e. `"foo#bar#"`)
+	 * 		| <string-literal>              (i.e. `"foo"`)
+	 */
+	private Expression parseCatchClauseTypename(Data data) throws TemplateException {
+		StringBuffer sbType = new StringBuffer();
+		String id;
+		Expression typename = null;
+
+		while (true) {
+			id = identifier(data, false);
+			if (id == null) break;
+			sbType.append(id);
+			data.srcCode.removeSpace();
+			if (!data.srcCode.forwardIfCurrent('.')) break;
+			sbType.append('.');
+			data.srcCode.removeSpace();
+		}
+
+		if (sbType.length() == 0) {
+			typename = string(data);
+			if (typename == null) return null;
+		}
+		else {
+			typename = data.factory.createLitString(sbType.toString());
+		}
+
+		comments(data);
+
+		return typename;
+	}
+
+	/**
 	 * Liest eine try Block ein <br />
 	 * EBNF:<br />
 	 * <code>;</code>
@@ -2292,35 +2332,15 @@ public abstract class AbstrCFMLScriptTransformer extends AbstrCFMLExprTransforme
 			catchCount++;
 			comments(data);
 
-			// type
 			int pos = data.srcCode.getPos();
 			Position line = data.srcCode.getPosition();
-			Expression name = null, type = null;
 
-			StringBuffer sbType = new StringBuffer();
-			String id;
-			while (true) {
-				id = identifier(data, false);
-				if (id == null) break;
-				sbType.append(id);
-				data.srcCode.removeSpace();
-				if (!data.srcCode.forwardIfCurrent('.')) break;
-				sbType.append('.');
-				data.srcCode.removeSpace();
-			}
-
-			if (sbType.length() == 0) {
-				type = string(data);
-				if (type == null) throw new TemplateException(data.srcCode, "a catch statement must begin with the throwing type (query, application ...).");
-			}
-			else {
-				type = data.factory.createLitString(sbType.toString());
-			}
-
-			// name = expression();
-			comments(data);
+			// type
+			Expression type = parseCatchClauseTypename(data);
+			if (type == null) throw new TemplateException(data.srcCode, "a catch statement must begin with the throwing type (query, application ...).");
 
 			// name
+			Expression name = null;
 			if (!data.srcCode.isCurrent(')')) {
 				name = expression(data);
 			}
