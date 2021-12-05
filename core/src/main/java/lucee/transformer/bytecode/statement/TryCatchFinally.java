@@ -105,16 +105,24 @@ public final class TryCatchFinally extends StatementBase implements Opcodes, Has
 	 */
 	private class Catch {
 
-		private ExprString type;
+		private ArrayList<ExprString> typenames;
 		private Body body;
 		private VariableRef name;
 		private Position line;
+		private boolean matchesAny = false; // whether there is an "any" in the typename list
 
 		public Catch(ArrayList<ExprString> typenames, VariableRef name, Body body, Position line) {
-			this.type = typenames.get(0);
+			this.typenames = typenames;
 			this.name = name;
 			this.body = body;
 			this.line = line;
+
+			for (final ExprString typename : typenames) {
+				if (typename != null && (typename instanceof LitString) && ((LitString)typename).getString().equalsIgnoreCase("any")) {
+					matchesAny = true;
+					break;
+				}
+			}
 		}
 
 	}
@@ -229,26 +237,54 @@ public final class TryCatchFinally extends StatementBase implements Opcodes, Has
 		while (it.hasNext()) {
 			Catch ct = it.next();
 			// store any for else
-			if (ct.type != null && ct.type instanceof LitString && ((LitString) ct.type).getString().equalsIgnoreCase("any")) {
+			if (ct.matchesAny) {
 				ctElse = ct;
 				continue;
 			}
 
 			ExpressionUtil.visitLine(bc, ct.line);
 
+			final Label startCatchBody = new Label();
+			final int actualTypeToUserTypeComparisonResult = adapter.newLocal(Types.BOOLEAN_VALUE);
+
+			adapter.push(false);
+			adapter.storeLocal(actualTypeToUserTypeComparisonResult);
+
 			// pe.typeEqual(type)
-			if (ct.type == null) {
-				getFactory().TRUE().writeOut(bc, Expression.MODE_VALUE);
-			}
-			else {
-				adapter.loadLocal(pe);
-				ct.type.writeOut(bc, Expression.MODE_REF);
-				adapter.invokeVirtual(Types.PAGE_EXCEPTION, TYPE_EQUAL);
+			for (ExprString typename : ct.typenames) {
+				if (typename == null) { // is this a defensive error case? under what circumstances do we parse a null typename?
+					adapter.visitJumpInsn(Opcodes.GOTO, startCatchBody);
+				}
+				else {
+					adapter.loadLocal(pe);
+					typename.writeOut(bc, Expression.MODE_REF);
+					adapter.invokeVirtual(Types.PAGE_EXCEPTION, TYPE_EQUAL);
+					adapter.dup();
+					adapter.storeLocal(actualTypeToUserTypeComparisonResult);
+					adapter.ifZCmp(Opcodes.IFNE, startCatchBody);
+				}
 			}
 
+			// if (ct.type == null) { // is this a defensive error case? under what circumstances do we parse a null typename?
+			// 	getFactory().TRUE().writeOut(bc, Expression.MODE_VALUE);
+			// 	// adapter.visitJumpInsn(Opcodes.GOTO, startCatchBlock);
+			// }
+			// else {
+			// 	adapter.loadLocal(pe);
+			// 	ct.type.writeOut(bc, Expression.MODE_REF);
+			// 	adapter.invokeVirtual(Types.PAGE_EXCEPTION, TYPE_EQUAL);
+			// 	// dup, push to local
+			// 	// adapter.dup();
+			// 	// adapter.storeLocal(actualTypeToUserTypeComparisonResult)
+			// 	// adapter.ifZCmp(Opcodes.IFNEQ, startCatchBlock)
+			// }
+
+			
 			Label endIf = new Label();
+			adapter.loadLocal(actualTypeToUserTypeComparisonResult);
 			adapter.ifZCmp(Opcodes.IFEQ, endIf);
 
+			adapter.visitLabel(startCatchBody);
 			catchBody(bc, adapter, ct, pe, lRef, true, true);
 
 			adapter.visitJumpInsn(Opcodes.GOTO, endAllIf);

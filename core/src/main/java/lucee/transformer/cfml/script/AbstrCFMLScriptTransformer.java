@@ -2294,9 +2294,11 @@ public abstract class AbstrCFMLScriptTransformer extends AbstrCFMLExprTransforme
 		
 		comments(data);
 
-		return sbType.length() == 0
+		Expression maybeNullExpr = sbType.length() == 0
 			? string(data)
 			: data.factory.createLitString(sbType.toString());
+		
+		return maybeNullExpr;
 	}
 
 	/**
