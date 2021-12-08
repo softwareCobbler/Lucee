@@ -25,6 +25,7 @@ import java.util.Stack;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.commons.Method;
+import org.objectweb.asm.Type;
 
 import lucee.commons.lang.StringUtil;
 import lucee.commons.lang.compiler.JavaFunction;
@@ -148,6 +149,10 @@ public class BytecodeContext implements Context {
 		this.adapter = bc.getAdapter();
 	}
 
+	public void setAdapter(GeneratorAdapter adapter) {
+		this.adapter = adapter;
+	}
+
 	/**
 	 * @return the classWriter
 	 */
@@ -167,6 +172,10 @@ public class BytecodeContext implements Context {
 	 */
 	public String getClassName() {
 		return className;
+	}
+
+	public Type getTypeofThis() {
+		return Type.getObjectType(getClassName());
 	}
 
 	/**

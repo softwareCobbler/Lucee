@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
@@ -32,9 +34,12 @@ import lucee.commons.lang.ExceptionUtil;
 import lucee.commons.lang.StringUtil;
 import lucee.runtime.functions.other.CreateUniqueId;
 import lucee.runtime.op.Caster;
+import lucee.runtime.type.Struct;
 import lucee.transformer.Position;
 import lucee.transformer.TransformerException;
 import lucee.transformer.bytecode.BytecodeContext;
+import lucee.transformer.bytecode.expression.var.Argument;
+import lucee.transformer.bytecode.expression.var.SpreadArgument;
 import lucee.transformer.bytecode.Statement;
 import lucee.transformer.bytecode.visitor.OnFinally;
 import lucee.transformer.bytecode.visitor.TryFinallyVisitor;
@@ -63,6 +68,84 @@ public final class ExpressionUtil {
 			array[i].writeOut(bc, Expression.MODE_REF);
 			adapter.visitInsn(Opcodes.AASTORE);
 		}
+	}
+
+	final static private Type ARRAY_LIST = Type.getType(java.util.ArrayList.class);
+	final static private Type STRUCT = Type.getType(lucee.runtime.type.Struct.class);
+	final static private Method DEFAULT_CONSTRUCTOR = Method.getMethod("void <init>()");
+
+	private static final class RuntimeObjectSpread {
+		final static public Class<?> klass = lucee.runtime.helpers.ObjectSpread.class;
+		final static public Type type = Type.getType(klass);
+		final static public Method spreadInto = Method.getMethod("void spreadInto(java.util.ArrayList, lucee.runtime.type.Struct)");
+		final static public Type spreadIntoThrows = Type.getType(java.lang.Exception.class);
+	}
+
+	public static void writeOutSpreadArgsArray(BytecodeContext bc, Argument[] args) throws TransformerException {
+		final Type ArrayList = Type.getType(java.util.ArrayList.class);
+
+		ClassWriter cw = bc.getClassWriter();
+		Method m = Method.getMethod("Object[] __fixme__foobar(lucee.runtime.PageContext)");
+		GeneratorAdapter localAdapter = new GeneratorAdapter(
+			Opcodes.ACC_PRIVATE,
+			m,
+			null,
+			new Type[] { RuntimeObjectSpread.spreadIntoThrows },
+			cw);
+
+		// hold onto the existing adapter, and set the local working adapter as the BytecodeContext's current adapter
+		// this ensures that descending into child expressions writes into the new method we are generating
+		final GeneratorAdapter savedAdapter = bc.getAdapter();
+		bc.setAdapter(localAdapter);
+		
+		final int result = localAdapter.newLocal(ARRAY_LIST);
+		final int workingArg = localAdapter.newLocal(Type.getType(Object.class));
+
+		localAdapter.newInstance(ARRAY_LIST);
+		localAdapter.dup();
+		localAdapter.invokeConstructor(ARRAY_LIST, DEFAULT_CONSTRUCTOR);
+		localAdapter.storeLocal(result);
+		
+		for (Argument arg : args) {			
+			if (arg instanceof SpreadArgument) {
+				final Label expectedStruct = new Label();
+				final Label done = new Label();
+				
+				arg._writeOut(bc, Expression.MODE_REF);
+				localAdapter.storeLocal(workingArg);
+				localAdapter.loadLocal(workingArg);
+				localAdapter.instanceOf(STRUCT);
+				localAdapter.ifZCmp(Opcodes.IFEQ, expectedStruct);
+
+				localAdapter.loadLocal(result);
+				localAdapter.loadLocal(workingArg);
+				localAdapter.invokeStatic(RuntimeObjectSpread.type, RuntimeObjectSpread.spreadInto);
+				localAdapter.goTo(done);
+				
+				localAdapter.visitLabel(expectedStruct);
+				localAdapter.throwException(Type.getType(java.lang.Exception.class), "Expected a struct as operand to spread operator.");
+
+				localAdapter.visitLabel(done);
+			}
+			else {
+				localAdapter.loadLocal(result);
+				arg.writeOut(bc, Expression.MODE_REF);
+				localAdapter.invokeVirtual(ARRAY_LIST, Method.getMethod("boolean add(Object)"));
+			}
+		}
+
+		localAdapter.loadLocal(result);
+		localAdapter.invokeVirtual(ARRAY_LIST, Method.getMethod("Object[] toArray()"));
+		localAdapter.returnValue();
+
+		localAdapter.endMethod();
+
+		bc.setAdapter(savedAdapter);
+
+		GeneratorAdapter adapter = bc.getAdapter();
+		adapter.loadThis();
+		adapter.loadArg(0);
+		adapter.invokeVirtual(bc.getTypeofThis(), m);
 	}
 
 	/**

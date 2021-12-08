@@ -25,6 +25,7 @@ import lucee.transformer.expression.var.Variable;
 public abstract class FunctionMember implements Member, Func {
 	private Argument[] arguments = new Argument[0];
 	private boolean _hasNamedArgs;
+	private boolean _hasSpreadArgs;
 	private Variable parent;
 	private boolean safeNavigated;
 	private Expression safeNavigatedValue;
@@ -42,6 +43,7 @@ public abstract class FunctionMember implements Member, Func {
 	@Override
 	public void addArgument(Argument argument) {
 		if (argument instanceof NamedArgument) _hasNamedArgs = true;
+		if (argument instanceof SpreadArgument) _hasSpreadArgs = true;
 		Argument[] tmp = new Argument[arguments.length + 1];
 		for (int i = 0; i < arguments.length; i++) {
 			tmp[i] = arguments[i];
@@ -63,6 +65,10 @@ public abstract class FunctionMember implements Member, Func {
 
 	public boolean hasNamedArgs() {
 		return _hasNamedArgs;
+	}
+
+	public boolean hasSpreadArgs() {
+		return _hasSpreadArgs;
 	}
 
 	@Override

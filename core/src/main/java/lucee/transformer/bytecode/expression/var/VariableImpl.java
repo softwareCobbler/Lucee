@@ -496,11 +496,18 @@ public class VariableImpl extends ExpressionBase implements Variable {
 					args = tmpArgs.toArray(new Argument[tmpArgs.size()]);
 				}
 			}
+
 			///////////////////////////////////////////////////////////////
 			argTypes = new Type[2];
 			argTypes[0] = Types.PAGE_CONTEXT;
 			argTypes[1] = Types.OBJECT_ARRAY;
-			ExpressionUtil.writeOutExpressionArray(bc, Types.OBJECT, args);
+
+			if (bif.hasSpreadArgs()) {
+				ExpressionUtil.writeOutSpreadArgsArray(bc, args);
+			}
+			else {
+				ExpressionUtil.writeOutExpressionArray(bc, Types.OBJECT, args);
+			}
 		}
 
 		// core

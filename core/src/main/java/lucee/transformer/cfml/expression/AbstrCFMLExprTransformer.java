@@ -44,6 +44,7 @@ import lucee.transformer.bytecode.expression.var.DynAssign;
 import lucee.transformer.bytecode.expression.var.Func;
 import lucee.transformer.bytecode.expression.var.FunctionMember;
 import lucee.transformer.bytecode.expression.var.NamedArgument;
+import lucee.transformer.bytecode.expression.var.SpreadArgument;
 import lucee.transformer.bytecode.expression.var.UDF;
 import lucee.transformer.bytecode.literal.Identifier;
 import lucee.transformer.bytecode.literal.Null;
@@ -268,6 +269,17 @@ public abstract class AbstrCFMLExprTransformer {
 	 */
 	protected Expression expression(Data data) throws TemplateException {
 		return assignOp(data);
+	}
+
+	private Argument functionArgumentOrSpreadFunctionArgument(Data data, boolean varKeyUpperCase) throws TemplateException {
+		if (data.srcCode.forwardIfCurrent("...")) {
+			comments(data);
+			Expression expr = clip(data);
+			return new SpreadArgument(expr, varKeyUpperCase);
+		}
+		else {
+			return functionArgument(data, null, varKeyUpperCase);
+		}
 	}
 
 	/**
@@ -1275,7 +1287,7 @@ public abstract class AbstrCFMLExprTransformer {
 			comments(data);
 			if (data.srcCode.isCurrent(end)) break;
 
-			bif.addArgument(functionArgument(data, data.settings.dotNotationUpper));
+			bif.addArgument(functionArgumentOrSpreadFunctionArgument(data, data.settings.dotNotationUpper));
 			comments(data);
 		}
 		while (data.srcCode.forwardIfCurrent(','));
