@@ -53,7 +53,7 @@ public class Future implements Objects {
 
 	public static Future _then(PageContext pc, UDF udf, long timeout) throws PageException {
 		ExecutorService executor = Executors.newSingleThreadExecutor();
-		return new Future(executor.submit(new CallableUDF(pc, udf, ARG_NULL)), timeout);
+		return new Future(executor.submit(new CallableUDF(pc, udf, ARG_NULL, /*captureParentPageContext*/ true)), timeout);
 	}
 
 	public Future then(PageContext pc, UDF udf, long timeout) throws PageException {

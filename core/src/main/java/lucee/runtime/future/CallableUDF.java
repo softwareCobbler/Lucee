@@ -29,8 +29,15 @@ public class CallableUDF implements Callable<Object> {
 	private long requestTimeout;
 	private ConfigWeb cw;
 	private Object arg;
+	private final PageContext capturedPageContext;
 
+	// constructor for "do not capture the parent PageContext",
+	// probably all callers really do want to capture, so this might be removable
 	public CallableUDF(PageContext parent, UDF udf, Object arg) {
+		this(parent, udf, arg, false);
+	}
+
+	public CallableUDF(PageContext parent, UDF udf, Object arg, boolean captureParentPageContext) {
 		// this.template=page.getPageSource().getRealpathWithVirtual();
 		HttpServletRequest req = parent.getHttpServletRequest();
 		serverName = req.getServerName();
@@ -45,6 +52,13 @@ public class CallableUDF implements Callable<Object> {
 		cw = parent.getConfig();
 		this.udf = udf;
 		this.arg = arg;
+
+		if (captureParentPageContext) {
+			capturedPageContext = parent;
+		}
+		else {
+			capturedPageContext = null;
+		}
 	}
 
 	@Override
@@ -53,14 +67,32 @@ public class CallableUDF implements Callable<Object> {
 		ThreadLocalPageContext.register(pc);
 
 		DevNullOutputStream os = DevNullOutputStream.DEV_NULL_OUTPUT_STREAM;
-		pc = ThreadUtil.createPageContext(cw, os, serverName, requestURI, queryString, SerializableCookie.toCookies(cookies), headers, null, parameters, attributes, true, -1);
-		pc.setRequestTimeout(requestTimeout);
+
+		final boolean usingCapturedPageContext = capturedPageContext != null;
+		if (usingCapturedPageContext) {
+			pc = capturedPageContext;
+		}
+		else {
+			pc = ThreadUtil.createPageContext(cw, os, serverName, requestURI, queryString, SerializableCookie.toCookies(cookies), headers, null, parameters, attributes, true, -1);
+			pc.setRequestTimeout(requestTimeout);
+		}
 
 		try {
 			return udf.call(pc, arg == Future.ARG_NULL ? new Object[] {} : new Object[] { arg }, true);
 		}
 		finally {
-			pc.getConfig().getFactory().releasePageContext(pc);
+			//
+			// not sure about who is in charge of releasing a captured page context
+			// if we've captured the caller's page context,
+			//   - we could run longer than it, and we're responsible for releasing it
+			//   - we could finish before it, and it's responsible for releasing it
+			// is there a bump counter or semaphore where we always release, and it decrements, and if it's zero, it truly gets released ?
+			//
+			
+			// if we made a fresh page context, we can release it
+			if (!usingCapturedPageContext) {
+				pc.getConfig().getFactory().releasePageContext(pc);
+			}
 		}
 
 	}
