@@ -32,6 +32,7 @@ import lucee.loader.engine.CFMLEngineFactory;
 public class CFMLServlet extends AbsServlet {
 
 	private static final long serialVersionUID = -1878214660283329587L;
+	public static org.graalvm.polyglot.Context trufflecfContext;
 
 	/**
 	 * @see javax.servlet.Servlet#init(javax.servlet.ServletConfig)
@@ -39,6 +40,7 @@ public class CFMLServlet extends AbsServlet {
 	@Override
 	public void init(final ServletConfig sg) throws ServletException {
 		super.init(sg);
+		trufflecfContext = org.graalvm.polyglot.Context.create();
 		engine = CFMLEngineFactory.getInstance(sg, this);
 	}
 

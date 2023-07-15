@@ -32,6 +32,7 @@ import javax.servlet.jsp.tagext.BodyTag;
 import javax.servlet.jsp.tagext.Tag;
 
 import lucee.commons.io.res.Resource;
+import lucee.loader.servlet.CFMLServlet;
 import lucee.runtime.config.ConfigWeb;
 import lucee.runtime.db.DataSource;
 import lucee.runtime.db.DataSourceManager;
@@ -1178,4 +1179,8 @@ public abstract class PageContext extends javax.servlet.jsp.PageContext {
 	 * scope
 	 */
 	public abstract boolean ignoreScopes();
+
+	public Object getTruffleCfContext() {
+		return CFMLServlet.trufflecfContext;
+	}
 }
