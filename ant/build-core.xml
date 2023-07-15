@@ -1,10 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project default="susi" basedir="${rootDir}" name="luceeCore" ><!-- TODO maybe there is a better way for this -->
+<project xmlns:ivy="antlib:org.apache.ivy.ant" default="susi" basedir="${rootDir}" name="luceeCore" ><!-- TODO maybe there is a better way for this -->
   <description>
         Build Lucee Core
   </description>
   
-
+  <target name="ivyresolve" description="--> retrieve dependencies with Ivy">
+    <ivy:retrieve/>
+  </target>
+  
+  <path id="justsome.pathname">
+    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/graal-sdk-23.0.0.jar" />
+    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/icu4j-72.1.jar" />
+    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/js-23.0.0.jar" />
+    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/js-scriptengine-23.0.0.jar" />
+    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/launcher-common-23.0.0.jar" />
+    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/regex-23.0.0.jar" />
+    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/truffle-api-23.0.0.jar" />
+  </path>
 
   <property name="build.compiler" value="extJavac"/>
   <property name="agent" value="lucee.runtime.instrumentation.ExternalAgent"/>
@@ -32,7 +44,7 @@
       <format property="NOW" pattern="yyyy/MM/dd HH:mm:ss z" locale="en,GB"/>
   </tstamp>
 
-  <scriptdef name="readManifestEntry" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="readManifestEntry" language="javascript" manager="javax" classpathref="justsome.pathname">
     <attribute name="file" />
     <attribute name="variable" />
     <attribute name="key" />
@@ -48,12 +60,12 @@
             self.fail("missing file definition!");
         }
 
-        var attrs=manifest.getMainAttributes();
+        var attrs=manifest.xgetMainAttributes();
         project.setProperty(variable, attrs.getValue(key));
     ]]>
 </scriptdef>
 
-  <scriptdef name="listDirectory" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="listDirectory" language="javascript"  manager="javax" classpathref="justsome.pathname">
     <attribute name="directory" />
     <attribute name="delimiter" />
     <attribute name="returnvalue" />
@@ -75,7 +87,7 @@
   </scriptdef>
 
 
-  <scriptdef name="readRequiredExtensions" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="readRequiredExtensions" language="javascript"  manager="javax" classpathref="justsome.pathname">
     <attribute name="file" />
     <![CDATA[
         var filename = attributes.get("file");
@@ -140,7 +152,7 @@
         //
     ]]>
   </scriptdef>
-  <scriptdef name="splitIdVersion" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="splitIdVersion" language="javascript"  manager="javax" classpathref="justsome.pathname">
      <attribute name="prefix" />
      <attribute name="value" />
      <![CDATA[
@@ -163,7 +175,7 @@
      ]]>
   </scriptdef>
 
-  <scriptdef name="addBundles" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="addBundles" language="javascript"  manager="javax" classpathref="justsome.pathname">
      <attribute name="bundles" />
      <attribute name="target" />
      <attribute name="coremanifest" />
@@ -183,6 +195,13 @@
 
         // first we read the manifest
         var manifest = new java.util.jar.JarFile(bundles[i]).getManifest();
+        if (manifest === null) {
+          //throw Error(`manifest is null for '${bundles[i].toString()}' of ${bundles.map(v=>v.toString())}`)
+          // same as logic for script assuming a Nashorn execution environment, where we
+          // do `if !exist continue` ?
+          continue;
+        }
+
         var attrs=manifest.getMainAttributes();
         var name=attrs.getValue("Bundle-SymbolicName");
         var version=attrs.getValue("Bundle-Version");
@@ -222,7 +241,7 @@
     </sequential>
   </macrodef>
 
-  <scriptdef name="unwrap" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="unwrap" language="javascript"  manager="javax" classpathref="justsome.pathname">
      <attribute name="text" />
      <attribute name="property" />
      <![CDATA[
@@ -235,7 +254,7 @@
      ]]>
   </scriptdef>
 
-  <scriptdef name="updatedate" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="updatedate" language="javascript"  manager="javax" classpathref="justsome.pathname">
      <attribute name="text" />
      <attribute name="date" />
      <attribute name="property" />
@@ -256,7 +275,7 @@
      ]]>
   </scriptdef>
 
-  <scriptdef name="felix" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="felix" language="javascript"  manager="javax" classpathref="justsome.pathname">
      <attribute name="property" />
      <attribute name="dependencies" />
      <attribute name="separator" />
@@ -278,14 +297,14 @@
      ]]>
   </scriptdef>
   
-  <scriptdef name="currentTime" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="currentTime" language="javascript"  manager="javax" classpathref="justsome.pathname">
      <attribute name="property" />
      <![CDATA[
       project.setProperty(attributes.get("property"), new Date().getTime());
      ]]>
   </scriptdef>
 
-  <scriptdef name="toFileName" language="javascript" loaderRef="sharedbuild-loaderRef">
+  <scriptdef name="toFileName" language="javascript"  manager="javax" classpathref="justsome.pathname">
      <attribute name="id" />
      <attribute name="name" />
      <attribute name="version" />
@@ -344,7 +363,7 @@
 -->
 
 
-  <target name="init">
+  <target name="init" depends="ivyresolve">
     
 
     <property name="srcLoader" location="${rootDir}/loader/src/main/java"/>

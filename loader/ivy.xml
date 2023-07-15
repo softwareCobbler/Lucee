@@ -1,0 +1,11 @@
+<ivy-module version="2.0">
+    <info organisation="com.dwr.trufflecf" module="lucee-build-with-graal-js-deps"/>
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.graalvm.js/js -->
+        <dependency org="org.graalvm.js" name="js" rev="23.0.0"/>
+        <!-- https://mvnrepository.com/artifact/org.graalvm.js/js-scriptengine -->
+        <dependency org="org.graalvm.js" name="js-scriptengine" rev="23.0.0"/>
+        <!-- https://mvnrepository.com/artifact/org.graalvm.js/js-launcher -->
+        <dependency org="org.graalvm.js" name="js-launcher" rev="23.0.0"/>
+    </dependencies>
+</ivy-module>
