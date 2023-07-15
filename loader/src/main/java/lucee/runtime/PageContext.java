@@ -1183,4 +1183,8 @@ public abstract class PageContext extends javax.servlet.jsp.PageContext {
 	public Object getTruffleCfContext() {
 		return CFMLServlet.trufflecfContext;
 	}
+
+	public Object runtest(String s) {
+		return CFMLServlet.trufflecfContext.eval("trufflecf", s);
+	}
 }
