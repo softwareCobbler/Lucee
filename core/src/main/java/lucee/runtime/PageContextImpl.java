@@ -3869,4 +3869,40 @@ public final class PageContextImpl extends PageContext {
 		if (_idCounter < 0) _idCounter = 1;
 		return _idCounter;
 	}
+
+	static org.graalvm.polyglot.Context trufflecfContext;
+	static {
+		try {
+			trufflecfContext = org.graalvm.polyglot.Context
+				.newBuilder("trufflecf")
+				.allowAllAccess(true)
+				.hostClassLoader(PageContextImpl.class.getClassLoader())
+				.build();
+			trufflecfContext.getPolyglotBindings().putMember("some-string", "henlo fren");
+			trufflecfContext.getPolyglotBindings().putMember("some-int", 42);
+			trufflecfContext.getPolyglotBindings().putMember("some-obj", new Foo());
+			trufflecfContext.getPolyglotBindings().putMember("some-func", ((java.util.function.Supplier)() -> ThreadLocalPageContext.get()));
+		}
+		catch (Throwable e) {
+			System.out.println(e);
+			e.printStackTrace();
+			System.out.println("xxxxxxxxx");
+			System.out.println("xxxxxxxxx");
+			System.out.println("xxxxxxxxx discarding truffle failure, presumably during build ...");
+			System.out.println("xxxxxxxxx if this happens during actual server runtime, it's a bug");
+			System.out.println("xxxxxxxxx");
+			System.out.println("xxxxxxxxx");
+		}
+	}
+
+	@Override
+	public Object runtest(String s) {
+		System.out.println("RUNTEST, classloader=" + this.getClass().getClassLoader());
+		System.out.println("RUNTEST, TLPC.cl=" + ThreadLocalPageContext.class.getClassLoader());
+		return trufflecfContext.eval("trufflecf", s);
+	}
+
+	public static class Foo {
+		public Integer doit() { return 42; }
+	}
 }

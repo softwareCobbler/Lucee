@@ -3,19 +3,19 @@
   <description>
         Build Lucee Core
   </description>
-  
+
   <target name="ivyresolve" description="--> retrieve dependencies with Ivy">
     <ivy:retrieve/>
   </target>
   
   <path id="justsome.pathname">
-    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/graal-sdk-23.0.0.jar" />
-    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/icu4j-72.1.jar" />
-    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/js-23.0.0.jar" />
-    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/js-scriptengine-23.0.0.jar" />
-    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/launcher-common-23.0.0.jar" />
-    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/regex-23.0.0.jar" />
-    <pathelement location="C:/Users/anon/dev/java/Lucee/loader/lib/truffle-api-23.0.0.jar" />
+    <pathelement location="lib/graal-sdk-23.0.0.jar" />
+    <pathelement location="lib/icu4j-72.1.jar" />
+    <pathelement location="lib/js-23.0.0.jar" />
+    <pathelement location="lib/js-scriptengine-23.0.0.jar" />
+    <pathelement location="lib/launcher-common-23.0.0.jar" />
+    <pathelement location="lib/regex-23.0.0.jar" />
+    <pathelement location="lib/truffle-api-23.0.0.jar" />
   </path>
 
   <property name="build.compiler" value="extJavac"/>
@@ -364,6 +364,11 @@
 
 
   <target name="init" depends="ivyresolve">
+    <!--
+      debug class path resolution failures
+      <echo>baseDir=${baseDir}</echo>
+      <echo>${toString:justsome.pathname}</echo>
+    -->
     
 
     <property name="srcLoader" location="${rootDir}/loader/src/main/java"/>
@@ -828,7 +833,7 @@
 </target>
 
 <target name="__build_archives" depends="buildJars">
-
+    <!-- debug classpath <echo message="runtime classpath: ${runtime_classpath}"/> -->
 
     <!-- first we copy the jars in place otherwise, Lucee downloads them  -->
     <echots message="copy bundles in place"/>

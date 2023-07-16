@@ -1180,11 +1180,5 @@ public abstract class PageContext extends javax.servlet.jsp.PageContext {
 	 */
 	public abstract boolean ignoreScopes();
 
-	public Object getTruffleCfContext() {
-		return CFMLServlet.trufflecfContext;
-	}
-
-	public Object runtest(String s) {
-		return CFMLServlet.trufflecfContext.eval("trufflecf", s);
-	}
+	abstract public Object runtest(String s);
 }

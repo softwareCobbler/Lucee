@@ -8,5 +8,8 @@
     "cflint.exclude": [
         "loader/**",
         "temp/**"
-    ]
+    ],
+    "files.watcherExclude": {
+        "**/target": true
+    }
 }

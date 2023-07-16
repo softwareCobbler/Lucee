@@ -66,6 +66,30 @@
     </build>
 
 	<dependencies>
+    <!-- https://mvnrepository.com/artifact/org.graalvm.sdk/graal-sdk -->
+    <dependency>
+      <groupId>org.graalvm.sdk</groupId>
+      <artifactId>graal-sdk</artifactId>
+      <version>23.0.0</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.graalvm.truffle/truffle-api -->
+    <dependency>
+      <groupId>org.graalvm.truffle</groupId>
+      <artifactId>truffle-api</artifactId>
+      <version>23.0.0</version>
+    </dependency>
+
+    <!--
+      don't need this for core, only loader .... ?
+    <dependency>
+      <groupId>trxxxxxxuxfflefoo</groupId>
+      <artifactId>xshim</artifactId>
+      <version>unspecified</version>
+      <scope>provided</scope>
+    </dependency>
+    -->
+
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.framework</artifactId>
