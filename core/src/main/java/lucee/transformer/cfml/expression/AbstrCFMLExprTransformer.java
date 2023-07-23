@@ -134,7 +134,7 @@ import lucee.transformer.util.SourceCode;
  * </pre>
  *
  */
-public abstract class AbstrCFMLExprTransformer {
+public abstract class AbstrCFMLExprTransformer { // <<<<<<< parser 1
 
 	private static final short STATIC = 0;
 	private static final short DYNAMIC = 1;
@@ -1592,7 +1592,7 @@ public abstract class AbstrCFMLExprTransformer {
 	private Variable startElement(Data data, Identifier name, Position line) throws TemplateException {
 
 		// check function
-		if (data.srcCode.isCurrent('(')) {
+		if (data.srcCode.isCurrent('(')) { // <<<<<<< bif lookup
 			FunctionMember func = getFunctionMember(data, name, true);
 
 			Variable var = name.getFactory().createVariable(line, data.srcCode.getPosition());
@@ -1718,7 +1718,7 @@ public abstract class AbstrCFMLExprTransformer {
 		return name;
 	}
 
-	/**
+	/** <<<<<<< maybe static bif lookup
 	 * Liest die Argumente eines Funktonsaufruf ein und prueft ob die Funktion innerhalb der FLD
 	 * (Function Library Descriptor) definiert ist. Falls sie existiert wird die Funktion gegen diese
 	 * geprueft und ein built-in-function CFXD Element generiert, ansonsten ein normales funcion-call

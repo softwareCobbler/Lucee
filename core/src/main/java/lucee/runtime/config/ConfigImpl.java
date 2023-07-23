@@ -499,10 +499,45 @@ public abstract class ConfigImpl extends ConfigBase implements ConfigPro {
 	 * @Override public String[] getTemplateExtensions() { return Constants.TEMPLATE_EXTENSIONS; }
 	 */
 
+	@FunctionalInterface
+	public interface XCall {
+		public Object execute(PageContext pageContext, Object... args) throws Throwable;
+	}
 	protected void setFLDs(FunctionLib[] flds, int dialect) {
 		if (dialect == CFMLEngine.DIALECT_CFML) {
 			cfmlFlds = flds;
 			combinedCFMLFLDs = null; // TODO improve check (hash)
+			for (FunctionLib lib : flds) {
+				Map<String, FunctionLibFunction> functionsByName = lib.getFunctions();
+				FunctionLibFunction writedump = functionsByName.get("writedump");
+				// lucee.runtime.type.FunctionValueImpl.newInstance(lucee.runtime.type.util.KeyConstants.___filename, "writeDump.cfm"),
+				if (writedump != null) { // we do get a hit from XMLConfigWebFactory._loadFileSystem(ConfigServerImpl, ConfigImpl, Document, boolean, Log)
+					ArrayList<FunctionLibFunctionArg> argDefs = writedump.getArg();
+					XCall xcall = new XCall() {
+						public Object execute(PageContext pageContext, Object... args) throws Throwable {
+							final int arglen = argDefs.size() + args.length;
+							Object forwardedArgs[] = new Object[arglen];
+							for (int i = 0; i < argDefs.size(); i++) {
+								forwardedArgs[i] = lucee.runtime.type.FunctionValueImpl.newInstance(argDefs.get(i).getName(), argDefs.get(i).getDefaultValue());
+							}
+							for (int i = argDefs.size(); i < arglen; i++) {
+								forwardedArgs[i] = args[i - argDefs.size()];
+							}
+							return lucee.runtime.functions.system.CFFunction.call(pageContext, forwardedArgs);
+						}
+					};
+					if (PageContextImpl.trufflecfContext != null) {
+						PageContextImpl.trufflecfContext.getPolyglotBindings().putMember("writedump", xcall);
+					}
+					System.out.println(writedump);
+				}
+				// for (Map.Entry<String, FunctionLibFunction> each : functionsByName.entrySet()) {
+				// 	String name = each.getKey();
+				// 	if (name.equals("writedump")) {
+				// 		FunctionLibFunction f = each.getValue();
+				// 	}
+				// }
+			}
 		}
 		else {
 			luceeFlds = flds;
@@ -518,6 +553,18 @@ public abstract class ConfigImpl extends ConfigBase implements ConfigPro {
 	@Override
 	public FunctionLib[] getFLDs(int dialect) {
 		return dialect == CFMLEngine.DIALECT_CFML ? cfmlFlds : luceeFlds;
+	}
+
+	public FunctionLib[] truffleCf_getFunctionLibs() {
+		return getFLDs(CFMLEngine.DIALECT_CFML);
+	}
+
+	static private ThreadLocal<ConfigImpl> truffleCf_threadLocalConfigImpl = new ThreadLocal<>();
+	public void truffleCf_setSelfAsThreadLocalConfig() {
+		truffleCf_threadLocalConfigImpl.set(this);
+	}
+	static public ConfigImpl truffleCf_getThreadLocalConfigImpl() {
+		return truffleCf_threadLocalConfigImpl.get();
 	}
 
 	@Override
@@ -542,8 +589,19 @@ public abstract class ConfigImpl extends ConfigBase implements ConfigPro {
 	}
 
 	protected void setTLDs(TagLib[] tlds, int dialect) {
-		if (dialect == CFMLEngine.DIALECT_CFML) cfmlTlds = tlds;
-		else luceeTlds = tlds;
+		if (dialect == CFMLEngine.DIALECT_CFML) {
+			for (TagLib tagLib : tlds) {
+				Map<String, TagLibTag> tagLibTagsByName = tagLib.getTags();
+				TagLibTag tagLibTag = tagLibTagsByName.get("writedump");
+				if (tagLibTag != null) {
+					System.out.println(tagLibTag);
+				}
+			}
+			cfmlTlds = tlds;
+		}
+		else {
+			luceeTlds = tlds;
+		}
 	}
 
 	@Override

@@ -73,6 +73,7 @@ public final class PageSourceImpl implements PageSource {
 	// private byte load=LOAD_NONE;
 
 	private final MappingImpl mapping;
+	private final boolean isTruffleCf;
 
 	private boolean isOutSide;
 
@@ -93,6 +94,7 @@ public final class PageSourceImpl implements PageSource {
 	private PageSourceImpl() {
 		mapping = null;
 		relPath = null;
+		isTruffleCf = false;
 	}
 
 	private static class PageAndClassName {
@@ -118,6 +120,13 @@ public final class PageSourceImpl implements PageSource {
 	 * @param realPath
 	 */
 	PageSourceImpl(MappingImpl mapping, String realPath) {
+		if (realPath.endsWith(".t.cfm")) {
+			isTruffleCf = true;
+		}
+		else {
+			isTruffleCf = false;
+		}
+
 		this.mapping = mapping;
 		realPath = realPath.replace('\\', '/');
 		if (realPath.indexOf("//") != -1) {
@@ -147,6 +156,13 @@ public final class PageSourceImpl implements PageSource {
 	 * @param isOutSide
 	 */
 	PageSourceImpl(MappingImpl mapping, String realPath, boolean isOutSide) {
+		if (realPath.endsWith(".t.cfm")) {
+			isTruffleCf = true;
+		}
+		else {
+			isTruffleCf = false;
+		}
+
 		// recompileAlways=mapping.getConfig().getCompileType()==Config.RECOMPILE_ALWAYS;
 		// recompileAfterStartUp=mapping.getConfig().getCompileType()==Config.RECOMPILE_AFTER_STARTUP ||
 		// recompileAlways;
@@ -311,8 +327,10 @@ public final class PageSourceImpl implements PageSource {
 		long srcLastModified = srcFile.lastModified();
 		if (srcLastModified == 0L) return null;
 
+		boolean truffleCf_dev_CONSIDER_PAGE_ALWAYS_NEEDS_RECOMPILE = true; // maybe also check srcfile.startsWith("/bind-mount/")
+
 		// Page exists
-		if (page != null) {
+		if (!truffleCf_dev_CONSIDER_PAGE_ALWAYS_NEEDS_RECOMPILE && page != null) {
 			// if(page!=null && !recompileAlways) {
 			if (srcLastModified != page.getSourceLastModified()) {
 				// same size, maybe the content has not changed?
@@ -340,10 +358,25 @@ public final class PageSourceImpl implements PageSource {
 			Resource classFile = classRootDir.getRealResource(getJavaName() + ".class");
 			boolean isNew = false;
 			// new class
-			if (flush || !classFile.exists()) {
-				LogUtil.log(pc, Log.LEVEL_DEBUG, "compile", "compile [" + getDisplayPath() + "] no previous class file or flush");
+			if (truffleCf_dev_CONSIDER_PAGE_ALWAYS_NEEDS_RECOMPILE || flush || !classFile.exists()) {
+					LogUtil.log(pc, Log.LEVEL_DEBUG, "compile", "compile [" + getDisplayPath() + "] no previous class file or flush");
 
-				pcn.set(page = compile(config, classRootDir, null, false, pc.ignoreScopes()));
+				if (isTruffleCf) {
+					try {
+						((lucee.runtime.config.ConfigImpl)config).truffleCf_setSelfAsThreadLocalConfig();
+						File file = new File(srcFile.getAbsolutePath());
+						org.graalvm.polyglot.Source source = org.graalvm.polyglot.Source.newBuilder("trufflecf", file).build();
+						org.graalvm.polyglot.Value callTarget = PageContextImpl.trufflecfContext.parse(source);
+						pcn.set(page = new Page_Truffle(callTarget)); // <<<<<<< compile
+					}
+					catch (Throwable e) {
+						throw new RuntimeException(e);
+					}
+				}
+				else {
+					pcn.set(page = compile(config, classRootDir, null, false, pc.ignoreScopes())); // <<<<<<< compile
+				}
+
 				flush = false;
 				isNew = true;
 			}

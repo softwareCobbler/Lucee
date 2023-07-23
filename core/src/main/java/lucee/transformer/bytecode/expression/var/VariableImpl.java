@@ -363,7 +363,7 @@ public class VariableImpl extends ExpressionBase implements Variable {
 		else if (member instanceof UDF) return _writeOutFirstUDF(bc, (UDF) member, scope, doOnlyScope);
 		else return _writeOutFirstBIF(bc, (BIF) member, mode, last, getStart());
 	}
-
+	// <<<<<<< BIF emit
 	static Type _writeOutFirstBIF(BytecodeContext bc, BIF bif, int mode, boolean last, Position line) throws TransformerException {
 		GeneratorAdapter adapter = bc.getAdapter();
 		adapter.loadArg(0);

@@ -304,7 +304,7 @@ public final class Page extends BodyBase implements Root {
 	 * @throws TransformerException
 	 */
 	@Override
-	public byte[] execute(String className) throws TransformerException {
+	public byte[] execute(String className) throws TransformerException { // <<<<<<< transform to bytecode
 		javaFunctions = null;// most likely not necessary
 		// not exists in any case, so every usage must have a plan b for not existence
 		PageSource optionalPS = sourceCode instanceof PageSourceCode ? ((PageSourceCode) sourceCode).getPageSource() : null;
@@ -1462,7 +1462,7 @@ public final class Page extends BodyBase implements Root {
 			adapter.pop();
 		}
 	}
-
+	// <<<<<<< emit main call() method
 	private void writeOutCall(ConstrBytecodeContext constr, List<LitString> keys, ClassWriter cw, String name) throws TransformerException {
 		// GeneratorAdapter adapter = bc.getAdapter();
 		GeneratorAdapter adapter = new GeneratorAdapter(Opcodes.ACC_PUBLIC + Opcodes.ACC_FINAL, CALL1, null, new Type[] { Types.THROWABLE }, cw);

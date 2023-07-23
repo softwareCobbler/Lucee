@@ -8,7 +8,7 @@
             "name": "Attach Lucee Tomcat port 8000",
             "request": "attach",
             "hostName": "localhost",
-            "port": "8000",
+            "port": "9999",
             "sourcePaths" :[
                 "${workspaceFolder}/core",
                 "${workspaceFolder}/loader",

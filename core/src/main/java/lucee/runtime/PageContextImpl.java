@@ -3870,7 +3870,7 @@ public final class PageContextImpl extends PageContext {
 		return _idCounter;
 	}
 
-	static org.graalvm.polyglot.Context trufflecfContext;
+	static public org.graalvm.polyglot.Context trufflecfContext;
 	static {
 		try {
 			trufflecfContext = org.graalvm.polyglot.Context
@@ -3881,11 +3881,10 @@ public final class PageContextImpl extends PageContext {
 			trufflecfContext.getPolyglotBindings().putMember("some-string", "henlo fren");
 			trufflecfContext.getPolyglotBindings().putMember("some-int", 42);
 			trufflecfContext.getPolyglotBindings().putMember("some-obj", new Foo());
-			trufflecfContext.getPolyglotBindings().putMember("getVariablesScope", (
+			trufflecfContext.getPolyglotBindings().putMember("getThreadLocalPageContext", (
 				(java.util.function.Supplier)
 				() -> trufflecfContext.asValue((
 					((PageContextImpl)ThreadLocalPageContext.get())
-					.variablesScope()
 				))
 			));
 		}
