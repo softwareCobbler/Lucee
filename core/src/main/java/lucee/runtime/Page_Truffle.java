@@ -53,7 +53,11 @@ public class Page_Truffle extends Page {
 	}
 
 	public ImportDefintion[] getImportDefintions() {
-		throw new RuntimeException("Page_Truffle invoked getImportDefinitions");
+		//
+		// we do get invoked by the lucee runtime here, so we'll need to
+		// parse import defs, and then install this somehow
+		//
+		return new ImportDefintion[]{};
 	}
 
 	public CIPage[] getSubPages() {
