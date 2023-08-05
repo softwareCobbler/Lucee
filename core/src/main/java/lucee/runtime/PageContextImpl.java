@@ -3878,14 +3878,33 @@ public final class PageContextImpl extends PageContext {
 				.allowAllAccess(true)
 				.hostClassLoader(PageContextImpl.class.getClassLoader())
 				.build();
-			trufflecfContext.getPolyglotBindings().putMember("some-string", "henlo fren");
-			trufflecfContext.getPolyglotBindings().putMember("some-int", 42);
-			trufflecfContext.getPolyglotBindings().putMember("some-obj", new Foo());
-			trufflecfContext.getPolyglotBindings().putMember("getThreadLocalPageContext", (
+			trufflecfContext.getPolyglotBindings().putMember("__trufflecf__getThreadLocalPageContext", (
 				(java.util.function.Supplier)
 				() -> trufflecfContext.asValue((
 					((PageContextImpl)ThreadLocalPageContext.get())
 				))
+			));
+			trufflecfContext.getPolyglotBindings().putMember("__trufflecf__getVar", (
+				(java.util.function.Function<String, Object>)
+				(name) -> {
+					try {
+						return ThreadLocalPageContext.get().variablesScope().get(name);
+					}
+					catch (Throwable e) {
+						throw new RuntimeException(e);
+					}
+				}
+			));
+			trufflecfContext.getPolyglotBindings().putMember("__trufflecf__setVar", (
+				(java.util.function.BiConsumer<String, Object>)
+				(name, value) -> {
+					try {
+						ThreadLocalPageContext.get().variablesScope().put(name, value);
+					}
+					catch (Throwable e) {
+						throw new RuntimeException(e);
+					}
+				}
 			));
 		}
 		catch (Throwable e) {

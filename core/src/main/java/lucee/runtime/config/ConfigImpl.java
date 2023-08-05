@@ -511,6 +511,7 @@ public abstract class ConfigImpl extends ConfigBase implements ConfigPro {
 				Map<String, FunctionLibFunction> functionsByName = lib.getFunctions();
 				FunctionLibFunction writedump = functionsByName.get("writedump");
 				FunctionLibFunction createObject = functionsByName.get("createobject");
+				FunctionLibFunction getMetadata = functionsByName.get("getmetadata");
 				// lucee.runtime.type.FunctionValueImpl.newInstance(lucee.runtime.type.util.KeyConstants.___filename, "writeDump.cfm"),
 				if (writedump != null) { // we do get a hit from XMLConfigWebFactory._loadFileSystem(ConfigServerImpl, ConfigImpl, Document, boolean, Log)
 					ArrayList<FunctionLibFunctionArg> argDefs = writedump.getArg();
@@ -536,6 +537,17 @@ public abstract class ConfigImpl extends ConfigBase implements ConfigPro {
 					try {
 						if (PageContextImpl.trufflecfContext != null) {
 							PageContextImpl.trufflecfContext.getPolyglotBindings().putMember("createobject", createObject.getFunctionClassDefinition().getClazz());
+						}
+					}
+					catch (Throwable e) {
+						e.printStackTrace();
+						System.exit(1);
+					}
+				}
+				if (getMetadata != null) {
+					try {
+						if (PageContextImpl.trufflecfContext != null) {
+							PageContextImpl.trufflecfContext.getPolyglotBindings().putMember("getmetadata", getMetadata.getFunctionClassDefinition().getClazz());
 						}
 					}
 					catch (Throwable e) {

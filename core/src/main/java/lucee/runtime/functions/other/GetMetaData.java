@@ -56,7 +56,10 @@ public final class GetMetaData implements Function {
 	}
 
 	public static Object call(PageContext pc, Object object, boolean source) throws PageException {
-		if (object instanceof JavaObject) {
+		if (object instanceof org.graalvm.polyglot.Value) {
+			return lucee.runtime.PageContextImpl.trufflecfContext.getPolyglotBindings().getMember("__trufflecf__getMetadata").execute(object);
+		}
+		else if (object instanceof JavaObject) {
 			return call(pc, ((JavaObject) object).getClazz(), source);
 		}
 		else if (object instanceof ObjectWrap) {
